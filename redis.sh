@@ -28,19 +28,19 @@ VALIDATE(){
 }
 
 
-yum install https://rpms.remirepo.net/enterprise/remi-release-8.rpm -y &>>$LOGFILE
+sudo dnf install redis -y &>>$LOGFILE
 
 VALIDATE $? "Installing Redis repo"
 
-yum module enable redis:remi-6.2 -y &>>$LOGFILE
+sudo dnf install epel-release -y &>>$LOGFILE
 
 VALIDATE $? "Enabling Redis 6.2"
 
-yum install redis -y &>>$LOGFILE
+sudo dnf install redis -y &>>$LOGFILE
 
 VALIDATE $? "Installing Redis 6.2"
 
-sed -i 's/127.0.0.1/0.0.0.0/g' /etc/redis.conf /etc/redis/redis.conf &>>$LOGFILE
+sed -i 's/127.0.0.1/0.0.0.0/g' /etc/redis.conf &>>$LOGFILE
 
 VALIDATE $? "Allowing Remote connections to redis"
 
