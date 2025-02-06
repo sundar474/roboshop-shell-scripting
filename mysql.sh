@@ -27,26 +27,14 @@ VALIDATE(){
     fi
 }
 
-yum module disable mysql -y &>> $LOGFILE
+dnf install mysql-server -y &>>$LOGFILE
+VALIDATE $? "Installing MySQL Server"     
 
-VALIDATE $? "Disabling the default version"
+systemctl enable mysqld &>>$LOGFILE
+VALIDATE $? "Enabling MySQL server"
 
-cp /home/ec2-user/roboshop-shell-scripting/mysql.repo /etc/yum.repos.d/mysql.repo &>> $LOGFILE
+systemctl start mysqld &>>$LOGFILE
+VALIDATE $? "Starting MySQL Server"
 
-VALIDATE $? "Copying MySQL repo" 
-
-yum install mysql-community-server -y &>> $LOGFILE
-
-VALIDATE $? "Installing MySQL Server"
-
-systemctl enable mysqld &>> $LOGFILE
-
-VALIDATE $? "Enabling MySQL"
-
-systemctl start mysqld &>> $LOGFILE
-
-VALIDATE $? "Staring MySQL"
-
-mysql_secure_installation --set-root-pass RoboShop@1 &>> $LOGFILE
-
-VALIDATE $? "setting up root password"
+mysql_secure_installation --set-root-pass RoboShop@1 &>>$LOGFILE
+VALIDATE $? "Setting root password"
