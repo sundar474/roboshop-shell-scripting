@@ -1,84 +1,91 @@
 #!/bin/bash
 
-DATE=$(date +%F)
-LOGSDIR=/tmp
-# /home/centos/shellscript-logs/script-name-date.log
-SCRIPT_NAME=$0
-LOGFILE=$LOGSDIR/$0-$DATE.log
 USERID=$(id -u)
+TIMESTAMP=$(date +%F-%H-%M-%S)
+SCRIPT_NAME=$(echo $0 | cut -d "." -f1)
+LOGFILE=/tmp/$SCRIPT_NAME-$TIMESTAMP.log
 R="\e[31m"
 G="\e[32m"
-N="\e[0m"
 Y="\e[33m"
-
-if [ $USERID -ne 0 ];
-then
-    echo -e "$R ERROR:: Please run this script with root access $N"
-    exit 1
-fi
+N="\e[0m"
+MYSQL_HOST=mysql.sundarit.online
 
 VALIDATE(){
-    if [ $1 -ne 0 ];
-    then
-        echo -e "$2 ... $R FAILURE $N"
+   if [ $1 -ne 0 ]
+   then
+        echo -e "$2...$R FAILURE $N"
         exit 1
     else
-        echo -e "$2 ... $G SUCCESS $N"
+        echo -e "$2...$G SUCCESS $N"
     fi
 }
 
-yum install maven -y &>>$LOGFILE
+if [ $USERID -ne 0 ]
+then
+    echo "Please run this script with root access."
+    exit 1 # manually exit if error comes.
+else
+    echo "You are super user."
+fi
 
+
+dnf install maven -y &>> $LOGFILE
 VALIDATE $? "Installing Maven"
 
-useradd roboshop &>>$LOGFILE
+id roboshop &>> $LOGFILE
+if [ $? -ne 0 ]
+then
+    useradd roboshop &>> $LOGFILE
+    VALIDATE $? "Adding roboshop user"
+else
+    echo -e "roboshop user already exist...$Y SKIPPING $N"
+fi
 
-mkdir /app &>>$LOGFILE
+rm -rf /app &>> $LOGFILE
+VALIDATE $? "clean up existing directory"
 
-curl -L -o /tmp/shipping.zip https://roboshop-builds.s3.amazonaws.com/shipping.zip &>>$LOGFILE
+mkdir -p /app &>> $LOGFILE
+VALIDATE $? "Creating app directory"
 
-VALIDATE $? "Downloading shipping artifact"
+curl -L -o /tmp/shipping.zip https://roboshop-builds.s3.amazonaws.com/shipping.zip &>> $LOGFILE
+VALIDATE $? "Downloading shipping application"
 
-cd /app &>>$LOGFILE
-
+cd /app  &>> $LOGFILE
 VALIDATE $? "Moving to app directory"
- 
-unzip /tmp/shipping.zip &>>$LOGFILE
 
-VALIDATE $? "Unzipping shipping"
+unzip /tmp/shipping.zip &>> $LOGFILE
+VALIDATE $? "Extracting shipping application"
 
-mvn clean package &>>$LOGFILE
+mvn clean package &>> $LOGFILE
+VALIDATE $? "Packaging shipping"
 
-VALIDATE $? "packaging shipping app"
+mv target/shipping-1.0.jar shipping.jar &>> $LOGFILE
+VALIDATE $? "Renaming the artifact"
 
-mv target/shipping-1.0.jar shipping.jar &>>$LOGFILE
+cp /home/centos/roboshop-shell-scripting/shipping.service /etc/systemd/system/shipping.service &>> $LOGFILE
+VALIDATE $? "Copying service file"
 
-VALIDATE $? "renaming shipping jar"
+systemctl daemon-reload &>> $LOGFILE
+VALIDATE $? "Daemon reload"
 
-cp /home/centos/roboshop-shell-scripting/shipping.service /etc/systemd/system/shipping.service &>>$LOGFILE
-
-VALIDATE $? "copying shipping service"
-
-systemctl daemon-reload &>>$LOGFILE
-
-VALIDATE $? "daemon-reload"
-
-systemctl enable shipping  &>>$LOGFILE
-
+systemctl enable shipping  &>> $LOGFILE
 VALIDATE $? "Enabling shipping"
 
-systemctl start shipping &>>$LOGFILE
-
+systemctl start shipping &>> $LOGFILE
 VALIDATE $? "Starting shipping"
 
-yum install mysql -y  &>>$LOGFILE
+dnf install mysql -y &>> $LOGFILE
+VALIDATE $? "Installing MySQL"
 
-VALIDATE $? "Installing MySQL client"
+mysql -h $MYSQL_HOST -uroot -pRoboShop@1 -e "use cities" &>> $LOGFILE
+if [ $? -ne 0 ]
+then
+    echo "Schema is ... LOADING"
+    mysql -h $MYSQL_HOST -uroot -pRoboShop@1 < /app/schema/shipping.sql &>> $LOGFILE
+    VALIDATE $? "Loading schema"
+else
+    echo -e "Schema already exists... $Y SKIPPING $N"
+fi
 
-mysql -h mysql.sundarit.online -uroot -pRoboShop@1 < /app/schema/shipping.sql &>>$LOGFILE
-
-VALIDATE $? "Loaded countries and cities info"
-
-systemctl restart shipping &>>$LOGFILE
-
-VALIDATE $? "Restarting shipping"
+systemctl restart shipping
+VALIDATE $? "Restarted Shipping"
