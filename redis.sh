@@ -34,11 +34,11 @@ VALIDATE $? "Installing Redis repo"
 
 sudo dnf install epel-release -y &>>$LOGFILE
 
-VALIDATE $? "Enabling Redis 6.2"
+VALIDATE $? "Installing epel-release"
 
 sudo dnf install redis -y &>>$LOGFILE
 
-VALIDATE $? "Installing Redis 6.2"
+VALIDATE $? "Installing Redis"
 
 sed -i 's/127.0.0.1/0.0.0.0/g' /etc/redis.conf &>>$LOGFILE
 

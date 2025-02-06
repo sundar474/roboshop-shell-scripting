@@ -71,12 +71,11 @@ systemctl start shipping &>>$LOGFILE
 
 VALIDATE $? "Starting shipping"
 
-
 yum install mysql -y  &>>$LOGFILE
 
 VALIDATE $? "Installing MySQL client"
 
-mysql -h mysql.sundarit.online -uroot -pRoboShop@1 < /app/schema/shipping.sql  &>>$LOGFILE
+mysql -h mysql.sundarit.online -uroot -pRoboShop@1 < /app/schema/shipping.sql &>>$LOGFILE
 
 VALIDATE $? "Loaded countries and cities info"
 
